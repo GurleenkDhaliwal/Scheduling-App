@@ -35,6 +35,7 @@ export default function Dashboard() {
   const [loadingSlots, setLoadingSlots] = useState(true)
   const [loadingBookings, setLoadingBookings] = useState(true)
   const [bookingSlotId, setBookingSlotId] = useState<string | null>(null)
+  const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [confirmation, setConfirmation] = useState<string | null>(null)
@@ -132,6 +133,28 @@ export default function Dashboard() {
     }
   }
 
+  async function handleCancel(bookingId: string) {
+    setError(null)
+    setCancellingBookingId(bookingId)
+
+    try {
+      const { error: rpcError } = await supabase.rpc('cancel_booking', { p_booking_id: bookingId })
+
+      if (rpcError) {
+        setError(rpcError.message)
+        return
+      }
+
+      await Promise.all([fetchSlots(), fetchBookings()])
+
+      setConfirmation('Booking cancelled.')
+      if (confirmationTimer.current) clearTimeout(confirmationTimer.current)
+      confirmationTimer.current = setTimeout(() => setConfirmation(null), 5000)
+    } finally {
+      setCancellingBookingId(null)
+    }
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut()
     navigate('/login')
@@ -226,13 +249,22 @@ export default function Dashboard() {
                 return (
                   <li
                     key={booking.id}
-                    className="bg-white border border-gray-200 rounded-lg px-4 py-3"
+                    className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-4 py-3"
                   >
-                    <p className="text-sm font-medium text-gray-900">{booking.slots.services.name}</p>
-                    <p className="text-xs text-gray-500">{date} · {time}</p>
-                    <span className="mt-1.5 inline-block text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full capitalize">
-                      {booking.status}
-                    </span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{booking.slots.services.name}</p>
+                      <p className="text-xs text-gray-500">{date} · {time}</p>
+                      <span className="mt-1.5 inline-block text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full capitalize">
+                        {booking.status}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleCancel(booking.id)}
+                      disabled={cancellingBookingId === booking.id}
+                      className="ml-4 text-sm text-red-500 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {cancellingBookingId === booking.id ? 'Cancelling…' : 'Cancel'}
+                    </button>
                   </li>
                 )
               })}

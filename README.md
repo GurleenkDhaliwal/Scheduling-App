@@ -5,8 +5,8 @@ A scheduling app for booking pet grooming appointments, with AI-generated confir
 **Live:** https://monumental-mochi-7b38c6.netlify.app
 
 **Test credentials:**
-- Email: *(fill in)*
-- Password: *(fill in)*
+- Email: demo@petgrooming.com
+- Password: Demo1234
 
 ---
 
